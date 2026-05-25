@@ -59,19 +59,19 @@ The platform resolves environmental non-stationarity by executing the **Centrali
 
 ```mermaid
 graph TD
-    subgraph Centralized Training Phase (Python/PyTorch)
-        JointObs[Joint Global State S: 99 features] -->|Concatenation| SharedCritic[Centralized Critic Network]
-        SharedCritic -->|State Value V S| GAECalc[Generalized Advantage Estimation]
-        GAECalc -->|Advantage A_t| PPOLoss[MAPPO Policy Loss Minimization]
+    subgraph "Centralized Training Phase (Python/PyTorch)"
+        JointObs["Joint Global State S: 99 features"] -->|Concatenation| SharedCritic["Centralized Critic Network"]
+        SharedCritic -->|"State Value V(S)"| GAECalc["Generalized Advantage Estimation"]
+        GAECalc -->|"Advantage A_t"| PPOLoss["MAPPO Policy Loss Minimization"]
     end
     
-    subgraph Decentralized Execution Phase (Edge JS Engine)
-        ObsK[Knight Obs: 33 features] --> ActorK[Knight Actor MLP]
-        ObsR[Ranger Obs: 33 features] --> ActorR[Ranger Actor MLP]
-        ObsH[Healer Obs: 33 features] --> ActorH[Healer Actor MLP]
+    subgraph "Decentralized Execution Phase (Edge JS Engine)"
+        ObsK["Knight Obs: 33 features"] --> ActorK["Knight Actor MLP"]
+        ObsR["Ranger Obs: 33 features"] --> ActorR["Ranger Actor MLP"]
+        ObsH["Healer Obs: 33 features"] --> ActorH["Healer Actor MLP"]
     end
     
-    ActorK -->|Action 0-5| Environment[HTML5 Canvas Simulator]
+    ActorK -->|Action 0-5| Environment["HTML5 Canvas Simulator"]
     ActorR -->|Action 0-5| Environment
     ActorH -->|Action 0-5| Environment
     Environment -->|State Transitions| ObsK
