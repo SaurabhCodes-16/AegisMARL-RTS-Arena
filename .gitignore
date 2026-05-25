@@ -1,0 +1,15 @@
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local model training saves (Optional to keep, but standard checkpoints can be ignored or committed)
+# We keep .pth checkpoints so they can be cloned, but ignore general logs
+*.log
+.gemini/
+
+# OS Specific
+.DS_Store
+Thumbs.db
