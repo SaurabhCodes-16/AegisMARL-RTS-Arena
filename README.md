@@ -1,114 +1,127 @@
 # AegisMARL: Cooperative Multi-Agent RTS Tactical Arena
 
-AegisMARL is a premium, quantitative portfolio project demonstrating **Multi-Agent Reinforcement Learning (MARL)** within a 2D Real-Time Strategy (RTS) battle arena. 
-
-The project coordinates a decentralized Blue Team (Knight, Ranger, and Healer) using a custom **Multi-Agent Proximal Policy Optimization (MAPPO)** engine written from scratch in PyTorch, deployed serverless directly in the browser via vanilla JavaScript matrix feedforward execution.
+AegisMARL is a decentralized multi-agent reinforcement learning (MARL) simulation platform. The system implements a cooperative team fight (Knight frontliner, Ranger ranged DPS, Healer support) coordinating against an aggressive enemy group. The system is built using a custom implementation of **Multi-Agent Proximal Policy Optimization (MAPPO)** from scratch in PyTorch, with policies compiled into lightweight JavaScript weights to perform real-time edge inference directly in a serverless web dashboard.
 
 ---
 
-## 🚀 Quick Start Guide
+## 1. Quick Start
 
-### 1. Run the Interactive Dashboard
-The entire interface runs fully serverless. To launch the server locally:
+### 1.1 Local Web Dashboard Setup
+Launch a local HTTP server in the repository root directory:
 ```bash
 python -m http.server 8000
 ```
-Then, open your web browser and navigate to:
-**`http://localhost:8000`**
+Open a web browser and navigate to: `http://localhost:8000`
 
-### 2. Train the PyTorch Models
-To re-train the neural network actors and automatically export the updated weights to the browser:
+### 1.2 Train the Models
+Execute the training harness to optimize the decentralized actors and export the mathematical coefficients to the browser script (`marl_weights.js`):
 ```bash
 python train_marl.py
 ```
 
-### 3. Run Automated Equivalence Validation
-To mathematically verify that the JavaScript feedforward engine produces identical outputs to PyTorch:
+### 1.3 Mathematical Equivalence Validation
+Run the test suite to verify that the browser feedforward matrix multiplication math is identical to the PyTorch forward pass:
 ```bash
 python test_equivalence.py
 ```
 
 ---
 
-## 🧠 System Architecture & CTDE Paradigm
+## 2. Markov Decision Process (MDP) Formulation
 
-AegisMARL implements the industry-standard **Centralized Training with Decentralized Execution (CTDE)** framework, solving the environmental non-stationarity problem inherent in multi-agent systems.
+The cooperative battle is modeled as a partially observable stochastic game. Each agent $i \in \{\text{Knight}, \text{Ranger}, \text{Healer}\}$ maps local inputs to action probability distributions.
+
+### 2.1 Observation Space ($\mathcal{O}_i \in \mathbb{R}^{33}$)
+The input vector for each agent is a structured 33-dimensional float array containing:
+*   **Self Features (7 dimensions)**: $[HP\%, Type_{Knight}, Type_{Ranger}, Type_{Healer}, Cooldown\%, Position_X, Position_Y]$
+*   **Allies Features (14 dimensions)**: Relative offsets $[Position_X, Position_Y]$, health percentage, and one-hot type indicators for the nearest two allies. Dead allies are padded with zeros.
+*   **Enemies Features (12 dimensions)**: Relative offsets $[Position_X, Position_Y]$ and health percentages for the three Goblins, tracked strictly by fixed index mapping.
+
+### 2.2 Action Space ($\mathcal{A}_i \in [0, 5]$)
+The decision space is discrete and comprises six operations:
+*   `0`: Idle / Wait
+*   `1-4`: Directional navigation (North, South, East, West) with velocity scaling.
+*   `5`: Class-specific skill activation (Knight: Melee Cleave; Ranger: Projectile Shot; Healer: Holy Mend).
+
+### 2.3 Reward Design ($R_i$)
+To induce cooperative alignment, the reward matrix balances individual skill rewards with a shared team survival bonus:
+*   **Knight / Ranger Attack**: $+0.8 \times \text{Damage Dealt} + 20.0 \times \text{Killing Blow}$
+*   **Healer Mend**: $+1.2 \times \text{Damage Healed} + 10.0 \times \text{Save Bonus}$ (if target HP $< 35\%$)
+*   **Team Penalty**: $-0.05 \times \text{Damage Taken}$ per agent (discourages individual recklessness)
+*   **Team Victory**: $+80.0$ global reward (Goblins eliminated)
+*   **Team Defeat / Death**: $-20.0$ individual death penalty; $-30.0$ team wipe penalty
+
+---
+
+## 3. Algorithmic Optimization: MAPPO & CTDE
+
+The platform resolves environmental non-stationarity by executing the **Centralized Training with Decentralized Execution (CTDE)** paradigm.
 
 ```mermaid
 graph TD
-    subgraph Centralized Training (Python/PyTorch)
-        GlobalState[Global State S: 99 features] -->|Joint State Vector| Critic[Centralized Critic Network]
-        Critic -->|Cooperative GAE Advantages| LossCalc[MAPPO Loss Optimization]
+    subgraph Centralized Training Phase (Python/PyTorch)
+        JointObs[Joint Global State S: 99 features] -->|Concatenation| SharedCritic[Centralized Critic Network]
+        SharedCritic -->|State Value V S| GAECalc[Generalized Advantage Estimation]
+        GAECalc -->|Advantage A_t| PPOLoss[MAPPO Policy Loss Minimization]
     end
     
-    subgraph Decentralized Execution (Web Browser Canvas)
-        ObsKnight[Knight Obs: 33 features] -->|Local Sight| ActorKnight[Knight Actor Policy]
-        ObsRanger[Ranger Obs: 33 features] -->|Local Sight| ActorRanger[Ranger Actor Policy]
-        ObsHealer[Healer Obs: 33 features] -->|Local Sight| ActorHealer[Healer Actor Policy]
+    subgraph Decentralized Execution Phase (Edge JS Engine)
+        ObsK[Knight Obs: 33 features] --> ActorK[Knight Actor MLP]
+        ObsR[Ranger Obs: 33 features] --> ActorR[Ranger Actor MLP]
+        ObsH[Healer Obs: 33 features] --> ActorH[Healer Actor MLP]
     end
     
-    ActorKnight -->|Choose Action| Sim[HTML5 Canvas Battle Arena]
-    ActorRanger -->|Choose Action| Sim
-    ActorHealer -->|Choose Action| Sim
-    Sim -->|State Transitions| ObsKnight
-    Sim -->|State Transitions| ObsRanger
-    Sim -->|State Transitions| ObsHealer
+    ActorK -->|Action 0-5| Environment[HTML5 Canvas Simulator]
+    ActorR -->|Action 0-5| Environment
+    ActorH -->|Action 0-5| Environment
+    Environment -->|State Transitions| ObsK
+    Environment -->|State Transitions| ObsR
+    Environment -->|State Transitions| ObsH
 ```
 
-1.  **Centralized Critic ($V(\mathcal{S})$)**: During training, a centralized value network observes the joint global state vector $\mathcal{S} \in \mathbb{R}^{99}$ (concatenating all agent observations), guiding the policy updates with high-fidelity joint value estimates.
-2.  **Decentralized Actors ($\pi(a_i | o_i)$)**: During execution in the web browser, the Critic is stripped away. Individual Actor MLP networks run feedforward matrix multiplications locally in-browser using only their decentralized 33-feature observation vectors (consisting of self health, local cooldowns, and offsets to visible allies and Goblins).
+### 3.1 Centralized Critic Network
+During training, a centralized critic function $V_\phi(\mathcal{S})$ processes the concatenated joint state vector $\mathcal{S} \in \mathbb{R}^{99}$ to compute baseline state-value estimates. Advantages $\hat{A}_t$ are evaluated using Generalized Advantage Estimation (GAE):
+$$\hat{A}_t = \sum_{l=0}^{\infty} (\gamma \lambda)^l \delta_{t+l}^V$$
+$$\delta_t^V = r_t + \gamma V_\phi(\mathcal{S}_{t+1}) - V_\phi(\mathcal{S}_t)$$
+
+### 3.2 Decentralized Actor Update
+Policy parameters $\theta_i$ for each agent class are optimized by maximizing the standard clipped objective function:
+$$L^{CLIP}(\theta_i) = \hat{\mathbb{E}}_t \left[ \min\left(r_t(\theta_i)\hat{A}_t, \text{clip}(r_t(\theta_i), 1-\epsilon, 1+\epsilon)\hat{A}_t\right) \right]$$
+where $r_t(\theta_i) = \frac{\pi_{\theta_i}(a_t|o_t)}{\pi_{\theta_{old, i}}(a_t|o_t)}$ is the probability ratio. Weight sharing is implemented within class blocks (e.g. all healers evaluate the same parameters) to ensure scalable learning dynamics.
 
 ---
 
-## 🛠️ Challenges Faced & Engineering Solutions
+## 4. Engineering Bottlenecks Resolved
 
-A high-quality reinforcement learning project is defined by the real engineering roadblocks solved during development. Here is the detailed breakdown of the challenges encountered and resolved in this project:
+### 4.1 Cowardly Agent Local Minimum (MDP Reward Rebalancing)
+*   **Issue**: Initial training configurations resulted in a flat 0.0% win rate. Blue team agents consistently ran away to the western boundary to stall.
+*   **Root Cause**: The damage penalty was set to $-0.15$ per agent. Since there are 3 agents, a single hit cost the team $-0.45 \times \text{Damage Taken}$, while dealing damage only yielded $+0.4 \times \text{Damage Dealt}$. The network discovered that avoiding Goblins maximized rewards by minimizing negative penalties.
+*   **Resolution**: Rebalanced the MDP matrix (doubled attack gains to `0.8`, halved hit penalties to `0.05`, and raised win rewards to `80.0`). This aligned the optimization gradient with aggressive defense.
 
-### Challenge 1: The "Cowardly Agent" Local Minimum (Reward Shaping)
-*   **The Problem**: During early training iterations, the Blue Team achieved a flat 0.0% win rate. When spawned, the Knight, Ranger, and Healer would immediately run away from the Goblins, pinning themselves against the far walls and stalling.
-*   **The Root Cause**: We designed a team penalty for taking damage to encourage mutual protection (`rewards[a] -= damage * 0.15` per agent). However, because there are 3 agents, the total team penalty amounted to `-0.45 * damage`, which mathematically outweighed the individual attack reward of `+0.4 * damage`. The neural networks quickly realized that fighting resulted in net-negative rewards. Fleeing to corners to delay contact was the mathematically optimal "local minimum" strategy to maximize episodic returns.
-*   **The Solution**: We rebalanced the MDP reward matrix:
-    *   Doubled attack rewards from `+0.4 * damage` to **`+0.8 * damage`**.
-    *   Reduced the damage taken penalty from `-0.15` to **`-0.05`** per agent.
-    *   Increased the team victory reward from `+50.0` to **`+80.0`**.
-    This flipped the mathematical motivation, encouraging brave frontline coordination.
+### 4.2 Meatgrinder Training Environment Mismatch (Goblin Cooldown)
+*   **Issue**: Despite reward rebalancing, win rates remained at 0% in Python training runs.
+*   **Root Cause**: In the browser simulator, Goblins possessed a 10-step attack cooldown. In the Python Gymnasium environment (`marl_env.py`), Goblins had no cooldown and attacked every step. Goblins were generating $21$ damage *per step* to the Knight, killing him in 7 frames, making victory mathematically impossible.
+*   **Resolution**: Implemented an 8-step cooldown inside `marl_env.py` to balance the combat dynamics. The win rate immediately converged to a peak of **90.0%** in training.
 
-### Challenge 2: The "Meatgrinder" Discrepancy (Environment Alignment)
-*   **The Problem**: Even with rebalanced rewards, the win rate in the Python training terminal stayed at 0.0% across 350 episodes, and agents still eventually learned to flee.
-*   **The Root Cause**: A deep check of the code revealed an environment mismatch. In the browser (`rts_sim.js`), Goblins had a 10-step attack cooldown. But in the Python Gym environment (`marl_env.py`), Goblins had **no cooldown variable** and attacked every single step! Goblins were dealing a massive $3 \times 7 = 21$ damage *per step* to the Knight, melting him in just 7 steps. Winning was mathematically impossible, forcing the AI to revert to fleeing to minimize step penalties.
-*   **The Solution**: We added a `"cd": 0` (cooldown) field to each Goblin's state in `marl_env.py` and restricted their attack execution to an 8-step cooldown. **Immediately, the win rate surged from 0.0% to a peak of 90.0%**, as the AI finally had a fair environment where team cooperation could achieve victory.
-
-### Challenge 3: Scrambled Observations and Post-Kill Neural Lockups
-*   **The Problem**: When the trained weights were loaded in the browser, the Knight charged the Goblins but froze in place immediately after defeating the first target. The Healer also stood completely still.
-*   **The Root Cause**: We uncovered two separate structural issues:
-    1.  **Scrambled Inputs**: The Python environment processed observations strictly by Goblin index (Goblin 0 in slot 0, Goblin 1 in slot 1). The JS simulator filtered out dead Goblins and sorted active Goblins by distance, moving them up the array. When Goblin 0 died, the JS shifted Goblins 1 and 2 into slots 0 and 1. This scrambled input completely confused the neural network, causing the Knight to freeze.
-    2.  **Obs Solts Overrun**: When spawning extra Goblins in Manual Mode, they were pushed to indices 3, 4, 5... of the `goblins` array. The Actor network only has input weights for slots 0, 1, and 2, making the spawned reinforcements completely "invisible" to the AI.
-    3.  **Action Obsession**: The Healer's casting rewards during training were so high that its policy got locked onto spamming Action 5 (Heal Skill) at every step, preventing it from ever executing movement actions.
-*   **The Solution**: We resolved these issues with a series of high-quality software fallbacks:
-    *   **Index-Based Padding**: Refactored `getObservationForAgent()` in JS to follow strict index mapping, matching Python 100%.
-    *   **Slot-Reusing Spawns**: Updated `handleCanvasClick()` to reuse dead Goblin slots (0, 1, 2) when spawning reinforcements, keeping the Goblins array capped at 3 active targets.
-    *   **Hybrid Fallbacks**: Programmed a hybrid control architecture. If the AI policy decides to cast its skill (Action 5) but no targets are in range, it triggers a **heuristic fallback**: the Knight/Ranger charges the closest Goblin, and the Healer **automatically follows 80px behind the Knight** as a mobile support!
+### 4.3 Input Vector Scrambling and Neural Lockups (Index Padding & Heuristic Fallbacks)
+*   **Issue**: When the trained policy was evaluated in-browser, the Knight froze immediately after defeating the first Goblin, and the Healer remained static in the corner.
+*   **Root Cause**: 
+    1.  **State Mismatch**: Python padded inactive Goblins at fixed indices. JS filtered dead Goblins out and sorted them by distance. Once a Goblin died, JS shifted indices, scrambling the input and confusing the neural network.
+    2.  **Over-Reward Exploitation**: Attacking and healing rewards were so high that policies learned to spam Action 5 (Skill) continuously. In JS, when no target was in range, agents simply spammed skills in place and never executed spatial movement.
+*   **Resolution**:
+    *   **Index-Based Padding**: Refactored `getObservationForAgent` in JS to strictly evaluate Goblins by fixed indices.
+    *   **Slot-Reusing Spawns**: Modified the frontend spawn engine to overwrite dead Goblins' slots (0, 1, 2) rather than appending endlessly, keeping inputs stable.
+    *   **Hybrid Heuristic Fallbacks**: Programmed safety overrides. If the policy outputs Action 5 but no targets are in range, the agent executes spatial movement toward its goal (Healer follows Knight at an 80px buffer, Knight charges the closest active Goblin).
 
 ---
 
-## 📂 Project Structure
+## 5. Repository Contents
 
-```text
-├── marl_env.py            # Custom Multi-Agent 2D Gymnasium Environment
-├── mappo_scratch.py        # Custom PyTorch MAPPO from scratch
-├── train_marl.py          # Training orchestrator & JS Weights exporter
-├── test_equivalence.py    # Automated mathematical validation suite
-├── index.html             # Sleek dark-mode tabbed web dashboard
-├── index.css              # Glassmorphism and glowing neon Cyberpunk UI
-├── rts_sim.js             # Canvas render loop, physics, & JS weights forward-pass
-├── learning_lab.js        # Tab switcher, Bellman equation sandbox, neural synapse canvas
-└── marl_weights.js        # Exported neural weights & feedforward matrix math
-```
-
----
-
-## 🏆 Portfolio Highlights & Technical Value
-*   **Production Code Standards**: Clean docstrings, strict vector mapping, and isolated environments.
-*   **Zero-Dependency Deployment**: Demonstrates advanced edge inference. The entire neural network forward pass runs locally in-browser without any server lag or heavy packages.
-*   **Interactive Explainability**: The Neural Lab tab translates mathematical concepts (Bellman equation, neural network synapse activations) into interactive visual sandbox tools.
-*   **Gamification**: The "Manual Mode" allows recruiters to spawn hordes of Goblins live to stress-test your AI.
+*   `marl_env.py`: Custom 2D multi-agent Gymnasium battle simulator.
+*   `mappo_scratch.py`: PyTorch Centralized Critic / Decentralized Actor optimization code.
+*   `train_marl.py`: Core PPO training loop and JavaScript weights compiler.
+*   `test_equivalence.py`: Validation suite asserting identical JS/PyTorch forward passes.
+*   `index.html` & `index.css`: HTML5 and Cyberpunk glassmorphism front-end UI.
+*   `rts_sim.js`: Canvas renderer and edge JS neural execution loop.
+*   `learning_lab.js`: Tab nav, Bellman sandbox, and synapse animation controller.
+*   `marl_weights.js`: Compiled MLP Actor neural network weights.
