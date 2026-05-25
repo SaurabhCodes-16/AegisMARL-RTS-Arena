@@ -80,14 +80,14 @@ graph TD
 ```
 
 ### 3.1 Centralized Critic Network
-During training, a centralized critic function $V_\phi(\mathcal{S})$ processes the concatenated joint state vector $\mathcal{S} \in \mathbb{R}^{99}$ to compute baseline state-value estimates. Advantages $\hat{A}_t$ are evaluated using Generalized Advantage Estimation (GAE):
-$$\hat{A}_t = \sum_{l=0}^{\infty} (\gamma \lambda)^l \delta_{t+l}^V$$
-$$\delta_t^V = r_t + \gamma V_\phi(\mathcal{S}_{t+1}) - V_\phi(\mathcal{S}_t)$$
+During training, a centralized critic function $V\_\phi(\mathcal{S})$ processes the concatenated joint state vector $\mathcal{S} \in \mathbb{R}^{99}$ to compute baseline state-value estimates. Advantages $\hat{A}\_t$ are evaluated using Generalized Advantage Estimation (GAE):
+$$\hat{A}\_t = \sum\_{l=0}^{\infty} (\gamma \lambda)^l \delta\_{t+l}^V$$
+$$\delta\_t^V = r\_t + \gamma V\_\phi(\mathcal{S}\_{t+1}) - V\_\phi(\mathcal{S}\_t)$$
 
 ### 3.2 Decentralized Actor Update
-Policy parameters $\theta_i$ for each agent class are optimized by maximizing the standard clipped objective function:
-$$L^{CLIP}(\theta_i) = \hat{\mathbb{E}}_t \left[ \min\left(r_t(\theta_i)\hat{A}_t, \text{clip}(r_t(\theta_i), 1-\epsilon, 1+\epsilon)\hat{A}_t\right) \right]$$
-where $r_t(\theta_i) = \frac{\pi_{\theta_i}(a_t|o_t)}{\pi_{\theta_{old, i}}(a_t|o_t)}$ is the probability ratio. Weight sharing is implemented within class blocks (e.g. all healers evaluate the same parameters) to ensure scalable learning dynamics.
+Policy parameters $\theta\_i$ for each agent class are optimized by maximizing the standard clipped objective function:
+$$L^{CLIP}(\theta\_i) = \hat{\mathbb{E}}\_t \left[ \min\left(r\_t(\theta\_i)\hat{A}\_t, \text{clip}(r\_t(\theta\_i), 1-\epsilon, 1+\epsilon)\hat{A}\_t\right) \right]$$
+where $r\_t(\theta\_i) = \frac{\pi\_{\theta\_i}(a\_t|o\_t)}{\pi\_{\theta\_{\text{old}, i}}(a\_t|o\_t)}$ is the probability ratio. Weight sharing is implemented within class blocks (e.g. all healers evaluate the same parameters) to ensure scalable learning dynamics.
 
 ---
 

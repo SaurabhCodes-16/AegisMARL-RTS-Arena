@@ -19,7 +19,7 @@ This manual provides an in-depth, rigorous mathematical and system-level explana
 ### 1.1 Single-Agent vs. Multi-Agent Environments
 In a standard single-agent Markov Decision Process (MDP), the environment is assumed to be **stationary**. The transition probability function $\mathcal{P}(s' | s, a)$ depends exclusively on the current state $s$ and the single action $a$ of the agent.
 
-In a Multi-Agent environment, stationarity is broken. Multiple agents (Knight, Ranger, Healer) learn and update their policies $\pi_i$ simultaneously. From the individual perspective of the Knight, the environment transition dynamics $\mathcal{P}(s' | s, a_{\text{knight}}, \mathbf{a}_{-{\text{knight}}})$ shift dynamically as the Ranger and Healer alter their policies. This is known as the **Non-Stationarity Problem**. If agents are trained independently using standard single-agent algorithms, their policies will fail to converge because the mathematical foundations of their value estimators are shifting constantly.
+In a Multi-Agent environment, stationarity is broken. Multiple agents (Knight, Ranger, Healer) learn and update their policies $\pi\_i$ simultaneously. From the individual perspective of the Knight, the environment transition dynamics $\mathcal{P}(s' | s, a\_{\text{knight}}, \mathbf{a}\_{-\text{knight}})$ shift dynamically as the Ranger and Healer alter their policies. This is known as the **Non-Stationarity Problem**. If agents are trained independently using standard single-agent algorithms, their policies will fail to converge because the mathematical foundations of their value estimators are shifting constantly.
 
 ---
 
@@ -47,7 +47,7 @@ CTDE is the industry-standard paradigm designed to stabilize learning under non-
 ```
 
 1.  **Centralized Training**: During the offline training phase in PyTorch, we have access to the global simulator state. We concatenate all agents' individual observations into a single joint vector $\mathcal{S} \in \mathbb{R}^{99}$. A **Centralized Critic** network evaluates this joint vector to estimate the global team state value $V(\mathcal{S})$. Because the critic sees what *everyone* is doing, it can accurately evaluate the state transition probabilities, neutralizing the non-stationarity problem.
-2.  **Decentralized Execution**: During runtime (in the browser), the Centralized Critic is stripped away. The agents operate independently as decentralized actors. The Knight only feeds its local 33-feature observation $o_{\text{knight}}$ into its Actor MLP to get its action. There is no real-time communication channel or global coordinate sync; coordination emerges purely from their decentralized policy parameters.
+2.  **Decentralized Execution**: During runtime (in the browser), the Centralized Critic is stripped away. The agents operate independently as decentralized actors. The Knight only feeds its local 33-feature observation $o\_{\text{knight}}$ into its Actor MLP to get its action. There is no real-time communication channel or global coordinate sync; coordination emerges purely from their decentralized policy parameters.
 
 ---
 
@@ -58,23 +58,23 @@ AegisMARL implements **Multi-Agent Proximal Policy Optimization (MAPPO)**. PPO b
 
 To prevent destructive policy updates (where a bad gradient step completely destroys the network's capabilities), PPO uses a **Clipped Surrogate Objective** that constrains the policy update step within a trust region.
 
-For each agent $i$, we define the probability ratio $r_t(\theta_i)$ between the new policy and the old policy:
-$$r_t(\theta_i) = \frac{\pi_{\theta_i}(a_{t,i} | o_{t,i})}{\pi_{\theta_{\text{old}, i}}(a_{t,i} | o_{t,i})}$$
+For each agent $i$, we define the probability ratio $r\_t(\theta\_i)$ between the new policy and the old policy:
+$$r\_t(\theta\_i) = \frac{\pi\_{\theta\_i}(a\_{t,i} | o\_{t,i})}{\pi\_{\theta\_{\text{old}, i}}(a\_{t,i} | o\_{t,i})}$$
 
 The clipped loss objective is defined as:
-$$L^{\text{CLIP}}(\theta_i) = \hat{\mathbb{E}}_t \left[ \min\left(r_t(\theta_i) \hat{A}_t, \, \text{clip}(r_t(\theta_i), 1-\epsilon, 1+\epsilon) \hat{A}_t\right) \right]$$
+$$L^{\text{CLIP}}(\theta\_i) = \hat{\mathbb{E}}\_t \left[ \min\left(r\_t(\theta\_i) \hat{A}\_t, \, \text{clip}(r\_t(\theta\_i), 1-\epsilon, 1+\epsilon) \hat{A}\_t\right) \right]$$
 
-*   If the advantage $\hat{A}_t$ is positive, it means the chosen action was better than average. The loss function encourages the policy to increase the probability of this action, but the `clip` bounds the maximum increase to $1+\epsilon$ to prevent over-adjustment.
-*   If the advantage $\hat{A}_t$ is negative, it means the action was worse than average, and the loss function discourages it.
+*   If the advantage $\hat{A}\_t$ is positive, it means the chosen action was better than average. The loss function encourages the policy to increase the probability of this action, but the `clip` bounds the maximum increase to $1+\epsilon$ to prevent over-adjustment.
+*   If the advantage $\hat{A}\_t$ is negative, it means the action was worse than average, and the loss function discourages it.
 
 ### 3.2 Generalized Advantage Estimation (GAE)
-The advantage $\hat{A}_t$ measures how much better a chosen action is compared to the expected baseline value of the state. We calculate advantages using GAE, which introduces a parameter $\lambda$ to balance variance (high in raw returns) and bias (high in single-step value estimates).
+The advantage $\hat{A}\_t$ measures how much better a chosen action is compared to the expected baseline value of the state. We calculate advantages using GAE, which introduces a parameter $\lambda$ to balance variance (high in raw returns) and bias (high in single-step value estimates).
 
-The temporal difference error $\delta_t^V$ at step $t$ is computed using the centralized critic $V_\phi(\mathcal{S})$:
-$$\delta_t^V = r_t + \gamma V_\phi(\mathcal{S}_{t+1}) - V_\phi(\mathcal{S}_t)$$
+The temporal difference error $\delta\_t^V$ at step $t$ is computed using the centralized critic $V\_\phi(\mathcal{S})$:
+$$\delta\_t^V = r\_t + \gamma V\_\phi(\mathcal{S}\_{t+1}) - V\_\phi(\mathcal{S}\_t)$$
 
-The GAE advantage $\hat{A}_t$ is calculated recursively as:
-$$\hat{A}_t = \sum_{l=0}^{\infty} (\gamma \lambda)^l \delta_{t+l}^V$$
+The GAE advantage $\hat{A}\_t$ is calculated recursively as:
+$$\hat{A}\_t = \sum\_{l=0}^{\infty} (\gamma \lambda)^l \delta\_{t+l}^V$$
 where $\gamma$ is the discount factor (e.g., $0.98$) and $\lambda$ is the GAE parameter (e.g., $0.95$).
 
 ---
@@ -125,24 +125,24 @@ Each actor is a Multi-Layer Perceptron (MLP) with the architecture: **33 Inputs 
 The browser performs matrix multiplication natively in JavaScript using these mathematical layers:
 
 #### Layer 1 (Hidden Layer 1):
-$$\mathbf{h}_1 = \tanh(\mathbf{W}_1 \cdot \mathbf{x} + \mathbf{b}_1)$$
+$$\mathbf{h}\_1 = \tanh(\mathbf{W}\_1 \cdot \mathbf{x} + \mathbf{b}\_1)$$
 where:
 *   $\mathbf{x}$ is the 33-dimensional observation vector.
-*   $\mathbf{W}_1$ is the weight matrix of shape $64 \times 33$.
-*   $\mathbf{b}_1$ is the bias vector of shape $64$.
+*   $\mathbf{W}\_1$ is the weight matrix of shape $64 \times 33$.
+*   $\mathbf{b}\_1$ is the bias vector of shape $64$.
 *   $\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}$ is the hyperbolic tangent activation function, mapping values to $[-1, 1]$.
 
 #### Layer 2 (Hidden Layer 2):
-$$\mathbf{h}_2 = \tanh(\mathbf{W}_2 \cdot \mathbf{h}_1 + \mathbf{b}_2)$$
-where $\mathbf{W}_2$ has shape $64 \times 64$, and $\mathbf{b}_2$ has shape $64$.
+$$\mathbf{h}\_2 = \tanh(\mathbf{W}\_2 \cdot \mathbf{h}\_1 + \mathbf{b}\_2)$$
+where $\mathbf{W}\_2$ has shape $64 \times 64$, and $\mathbf{b}\_2$ has shape $64$.
 
 #### Layer 3 (Output Logits):
-$$\mathbf{z} = \mathbf{W}_3 \cdot \mathbf{h}_2 + \mathbf{b}_3$$
-where $\mathbf{W}_3$ has shape $6 \times 64$, and $\mathbf{b}_3$ has shape $6$.
+$$\mathbf{z} = \mathbf{W}\_3 \cdot \mathbf{h}\_2 + \mathbf{b}\_3$$
+where $\mathbf{W}\_3$ has shape $6 \times 64$, and $\mathbf{b}\_3$ has shape $6$.
 
 ### 5.2 Action Selection (Deterministic Argmax)
 In the browser evaluation environment, we select the action deterministically to showcase the absolute optimal, trained performance:
-$$\text{Selected Action} = \arg\max_{j \in [0, 5]} z_j$$
+$$\text{Selected Action} = \arg\max\_{j \in [0, 5]} z\_j$$
 
 ---
 
